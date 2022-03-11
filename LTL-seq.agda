@@ -61,6 +61,7 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
   alwaysSteps s = ∀ i → s i ⟶ s (suc i)
 
   record Path : Set where
+    constructor mkPath
     field
       infSeq         : ℕ → State
       isTransitional : alwaysSteps infSeq
@@ -79,6 +80,7 @@ module Transition (Atom : Set) (Model : 𝑀 Atom) where
   path-i : ℕ → Path → Path
   path-i zero p = p
   path-i (suc i) p = path-i i (tailPath p)
+  -- path-i (suc i) p = tailPath (path-i i p) -- Makes some proofs easier
 
   mutual
 
@@ -262,6 +264,7 @@ module Example1 where
   alwaysEventuallyR : pathLeft ⊧ G (F (atom r))
   alwaysEventuallyR zero = 1 , s1r
   alwaysEventuallyR (suc zero) = 0 , s1r
+  -- alwaysEventuallyR (suc (suc i)) = {!!}
   alwaysEventuallyR (suc (suc i)) = alwaysEventuallyR i
 
   pathRightS2 : Path
@@ -271,6 +274,7 @@ module Example1 where
   always-r-Right : pathRightS2 ⊧ G (atom r)
   always-r-Right zero = s2r
   always-r-Right (suc x) = always-r-Right x
+  -- always-r-Right (suc x) = {!!}
 
   open Model atoms
 
@@ -308,6 +312,7 @@ module Example1 where
   ex-6 s0 π π0=s 0 rewrite π0=s = λ { ()}
   ex-6 s1 π π0=s 0 rewrite π0=s = λ { ()}
   ex-6 s2 π π0=s 0 rewrite π0=s = λ { ()}
+  -- ex-6 s π π0=s (suc n) = {!!}
   ex-6 s0 π π0=s (suc n) = ex-6 (headPath (tailPath π)) (tailPath π) refl n
   ex-6 s1 π π0=s (suc n) = ex-6 (headPath (tailPath π)) (tailPath π) refl n
   ex-6 s2 π π0=s (suc n) = ex-6 (headPath (tailPath π)) (tailPath π) refl n
@@ -323,6 +328,7 @@ module Example1 where
   ex-7 π π0=s0 zero with headPath π
   ex-7 π refl zero | .s2 = s2r
   ex-7 π init (suc n) =
+    -- {!!} -- path-i alt
     ex-7
       (tailPath π)
       (lemma0 π init)
@@ -337,11 +343,24 @@ module Example1 where
   lemma π (fst , s1r) | .s1 = ⊥-elim (fst s1q)
   lemma π (fst , s2r) | .s2 = refl
 
+  -- path-i-suc-tailPath : ∀ π n → path-i n (tailPath π) ≡ tailPath (path-i n π)
+  path-i-suc-tailPath : ∀ π n → path-i (suc n) π ≡ tailPath (path-i n π)
+  path-i-suc-tailPath π zero = refl
+  path-i-suc-tailPath π (suc n) = path-i-suc-tailPath (tailPath π) n
+
+  -- -- Works if `path-i (suc n) p = tailPath (path-i n p)` definitionally
+  -- path-i-path-i-suc : ∀ π n  m →
+  --                     Transition.path-i atoms M m (path-i (suc n) π) ≡
+  --                     Transition.path-i atoms M (suc m) (path-i n π)
+  -- path-i-path-i-suc π n zero = refl
+  -- path-i-path-i-suc π n (suc m) = cong (tailPath) (path-i-path-i-suc π n m)
+
   move-future : ∀ π n ϕ →
-                Transition.future atoms M (path-i n π) ϕ
-              → Transition.future atoms M π ϕ
-  move-future π zero ϕ₁ (m , n-pf) = {!n-pf!}
-  move-future π (suc n) ϕ₁ (m , n-pf) = {!!}
+                future (path-i n π) ϕ
+              → future π ϕ
+  move-future π zero ϕ₁ (m , n-pf) = m , n-pf
+  move-future π (suc n) ϕ₁ (m , n-pf) = move-future π n ϕ₁ (suc m , subst (λ x → (atoms Transition.⊧ M) (Transition.path-i atoms M m x) ϕ₁) (path-i-suc-tailPath π n) n-pf)
+  -- move-future π (suc n) ϕ₁ (m , n-pf) = move-future π n ϕ₁ (suc m , subst (λ x → (atoms Transition.⊧ M) x ϕ₁) (path-i-path-i-suc π n m ) n-pf) -- For alternative path-i definition
 
 
   ex-8 :
@@ -370,6 +389,7 @@ module Example1 where
   ex-9-ii : pathLeft ⊧ (G (F (atom p)))
   ex-9-ii zero = 0 , s0p
   ex-9-ii (suc zero) = 1 , s0p
+  -- ex-9-ii (suc (suc n)) = {!!}
   ex-9-ii (suc (suc n)) = ex-9-ii n
 
 -- ex-9-ii zero | x | s0 | z = 1 , {!!}
